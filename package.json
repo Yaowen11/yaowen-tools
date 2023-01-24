@@ -1,0 +1,22 @@
+{
+  "name": "yaowen-tools",
+  "version": "0.0.1",
+  "description": "tools",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yaowen11/yaowen-tools.git"
+  },
+  "keywords": [
+    "tools"
+  ],
+  "author": "yaowen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Yaowen11/yaowen-tools/issues"
+  },
+  "homepage": "https://github.com/Yaowen11/yaowen-tools#readme"
+}
