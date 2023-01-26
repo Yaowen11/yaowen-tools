@@ -1,7 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 
-async function walk(folder, files) {
+/**
+ * 列出文件夹下所有文件
+ * @param folderPath 文件夹路径
+ * @returns {Promise<*[]>}
+ */
+async function walk(folderPath) {
+    const files = [];
+    await doWalk(folderPath, files);
+    return files;
+}
+
+async function doWalk(folder, files) {
     const folderFiles = await fs.promises.readdir(folder);
     for (const file of folderFiles) {
         const filePath = path.join(folder, file);
@@ -10,32 +21,35 @@ async function walk(folder, files) {
             files.push(filePath);
         }
         if (stat.isDirectory()) {
-            await walk(filePath, files);
+            await doWalk(filePath, files);
         }
     }
     return files;
 }
-
-async function folderIsEmptyDir(folder) {
+async function folderContainsEmptyDirs(folder, emptyDirs) {
     const folderStat = await fs.promises.stat(folder);
     if (folderStat.isDirectory()) {
         const folderFiles = await fs.promises.readdir(folder);
-        return folderFiles.length === 0;
-    }
-    return false;
-}
-async function folderEmptyDirs(folder, emptyDirs) {
-    const folderFiles = await fs.promises.readdir(folder);
-    for (const folderFile of folderFiles) {
-        const folderFilePath = path.join(folder, folderFile);
-        const folderFileIsEmptyDir = await folderIsEmptyDir(folder);
-        if (folderFileIsEmptyDir) {
-            emptyDirs.push(folderFilePath);
-        } else {
-            await folderEmptyDirs(folderFilePath, emptyDirs)
+        for (const folderFile of folderFiles) {
+            const folderFilePath = path.join(folder, folderFile);
+            const folderFileStat = await fs.promises.stat(folderFilePath);
+            if (folderFileStat.isDirectory()) {
+                const folderFileContainsFiles = await fs.promises.readdir(folderFilePath);
+                if (folderFileContainsFiles.length === 0) {
+                    emptyDirs.push(folderFilePath);
+                } else {
+                    await folderContainsEmptyDirs(folderFilePath, emptyDirs)
+                }
+            }
         }
     }
     return emptyDirs;
+}
+
+async function folderEmptyDirs(folder) {
+    const folderEmptyDirs = [];
+    await folderContainsEmptyDirs(folder, folderEmptyDirs)
+    return folderEmptyDirs
 }
 
 async function recursiveDeleteEmptyDir(folder, basePath) {
@@ -46,11 +60,15 @@ async function recursiveDeleteEmptyDir(folder, basePath) {
     }
 }
 
-async function rmFolderEmptyDir(folder) {
+/**
+ * 递归删除文件夹下空目录,包括其自身
+ * @param folder 文件夹路径
+ * @returns {Promise<void>}
+ */
+async function recursiveDeleteFolderEmptyDir(folder) {
     const folderStat = await fs.promises.stat(folder);
     if (folderStat.isDirectory()) {
-        const emptyDirs = [];
-        await folderEmptyDirs(folder, emptyDirs);
+        const emptyDirs = await folderEmptyDirs(folder);
         for (const emptyFolder of emptyDirs) {
             await recursiveDeleteEmptyDir(emptyFolder, folder);
         }
@@ -58,4 +76,4 @@ async function rmFolderEmptyDir(folder) {
 }
 
 exports.walk = walk;
-exports.rmFolderEmptyDir = rmFolderEmptyDir;
+exports.recursiveDeleteFolderEmptyDir = recursiveDeleteFolderEmptyDir;
